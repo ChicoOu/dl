@@ -7,6 +7,7 @@ MNIST_TRAIN_IMGS = './mnist/train-images-idx3-ubyte.gz'
 MNIST_TRAIN_LABELS = './mnist/train-labels-idx1-ubyte.gz'
 MNIST_TEST_IMGS = './mnist/t10k-images-idx3-ubyte.gz'
 MNIST_TEST_LABELS = './mnist/t10k-labels-idx1-ubyte.gz'
+MODEL_FILE = './model.h5'
 MAGIC_NUMBER = 0x00000803
 MAGIC_NUMBER1 = 0x00000801
 
@@ -77,16 +78,19 @@ def Models():
 
 def Train(m):
     (data, labels) = ReadInput()
+    (test_data, test_labels) = ReadTest()
     print("%d,%d" %(data.ndim, labels.ndim))
     m.compile(optimizer=tf.train.AdamOptimizer(0.001),
               loss='categorical_crossentropy',
               metrics=['accuracy'])
-    m.fit(data, labels, epochs=10, batch_size=32)
-
+    m.fit(data, labels, epochs=10, batch_size=32, validation_data=(test_data, test_labels))
+    m.save(MODEL_FILE)
 
 def ReadTest():
-    print("Read testing data")
-    return None
+    #print("Read testing data")
+    imgs = ReadImgFile(MNIST_TEST_IMGS)
+    labels = ReadLabelFile(MNIST_TEST_LABELS)
+    return (imgs, labels)
 
 def Test(m):
     test = ReadTest()
