@@ -1,7 +1,11 @@
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import backend as K
+import argparse
 import gzip
 import numpy as np
+import matplotlib.pyplot as plt
+import sys
 
 MNIST_TRAIN_IMGS = './mnist/train-images-idx3-ubyte.gz'
 MNIST_TRAIN_LABELS = './mnist/train-labels-idx1-ubyte.gz'
@@ -93,7 +97,8 @@ def ReadTest():
     labels = ReadLabelFile(MNIST_TEST_LABELS)
     return (imgs, labels)
 
-def Test(m):
+def Test():
+    m = keras.models.load_model(MODEL_FILE)
     test = ReadTest()
     m.predict(test, batch_size=30)
 
@@ -123,7 +128,42 @@ def TrainingVis(hist):
     ax2.legend()
     plt.tight_layout()
 
+
+def Convert():
+    m = keras.models.load_model(MODEL_FILE)
+    signature = tf.saved_model.signature_def_utils.predict_signature_def(                                                                        
+        inputs={'image': m.input}, outputs={'result': m.output})                                                                         
+                                                                                                                                                
+    builder = tf.saved_model.builder.SavedModelBuilder('./tf_mnist')                                                                    
+    builder.add_meta_graph_and_variables(                                                                                                        
+        sess=K.get_session(),                                                                                                                    
+        tags=[tf.saved_model.tag_constants.SERVING],                                                                                             
+        signature_def_map={                                                                                                                      
+            tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:                                                                
+                signature                                                                                                                        
+        })                                                                                                                                       
+    builder.save()
+
+def Main(argv):
+    parser = argparse.ArgumentParser(description='MNIST basic dnn.')
+    parser.add_argument('--t', '--train', action='store_true',
+                    help='train the model', default=False)
+    parser.add_argument('--p', '--predict', action='store_true', help='predict with the model')
+    parser.add_argument('--c', '--convert', action='store_true', help='convert h5 model to tf model')
+    args = parser.parse_args(argv)
+    
+    if(args.t):
+        m = Models()
+        m.summary()
+        Train(m)
+    elif(args.p):
+        # do something here
+        Test()
+    elif(args.c):
+        Convert()
+
+
+
 if __name__ == '__main__':
-    m = Models()
-    Train(m)
+    Main(sys.argv[1:])
     #ReadImgFile(MNIST_TRAIN_IMGS)
