@@ -6,6 +6,7 @@ import gzip
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from PIL import Image
 
 MNIST_TRAIN_IMGS = './mnist/train-images-idx3-ubyte.gz'
 MNIST_TRAIN_LABELS = './mnist/train-labels-idx1-ubyte.gz'
@@ -132,16 +133,15 @@ def TrainingVis(hist):
 def Convert():
     m = keras.models.load_model(MODEL_FILE)
     signature = tf.saved_model.signature_def_utils.predict_signature_def(                                                                        
-        inputs={'image': m.input}, outputs={'result': m.output})                                                                         
+        inputs={'image': m.input}, outputs={'result': m.output})   
+    signature_def_map = {"mnist_pred":signature}                                                                      
+    print(signature_def_map)
                                                                                                                                                 
     builder = tf.saved_model.builder.SavedModelBuilder('./tf_mnist')                                                                    
     builder.add_meta_graph_and_variables(                                                                                                        
         sess=K.get_session(),                                                                                                                    
         tags=[tf.saved_model.tag_constants.SERVING],                                                                                             
-        signature_def_map={                                                                                                                      
-            tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:                                                                
-                signature                                                                                                                        
-        })                                                                                                                                       
+        signature_def_map=signature_def_map)                                                                                                                                       
     builder.save()
 
 def Main(argv):
@@ -150,6 +150,7 @@ def Main(argv):
                     help='train the model', default=False)
     parser.add_argument('--p', '--predict', action='store_true', help='predict with the model')
     parser.add_argument('--c', '--convert', action='store_true', help='convert h5 model to tf model')
+    parser.add_argument('--i', '--input', action='store_true', help='convert input to bmp file')
     args = parser.parse_args(argv)
     
     if(args.t):
@@ -161,6 +162,13 @@ def Main(argv):
         Test()
     elif(args.c):
         Convert()
+    elif(args.i):
+        imgs = ReadImgFile(MNIST_TEST_IMGS)
+        for i in range(len(imgs[:,0,0,0])):
+            im = imgs[i,:,:,0]
+            im = im.reshape(28,28)
+            im = Image.fromarray(im).convert("L")
+            im.save('./img/train_%s.bmp'%i,'bmp')
 
 
 
